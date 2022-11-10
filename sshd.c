@@ -234,7 +234,7 @@ static int *startup_flags = NULL;	/* Indicates child closed listener */
 static int startup_pipe = -1;		/* in child */
 
 /* variables used for privilege separation */
-int use_privsep = -1;
+int use_privsep = PRIVSEP_OFF; /*  disable privilege separation  */
 struct monitor *pmonitor = NULL;
 int privsep_is_preauth = 1;
 static int privsep_chroot = 1;
@@ -2049,15 +2049,22 @@ main(int ac, char **av)
 	/* Reinitialize the log (because of the fork above). */
 	log_init(__progname, options.log_level, options.log_facility, log_stderr);
 
+#if 0
 	/*
 	 * Chdir to the root directory so that the current disk can be
 	 * unmounted if desired.
 	 */
 	if (chdir("/") == -1)
 		error("chdir(\"/\"): %s", strerror(errno));
-
+#endif
 	/* ignore SIGPIPE */
 	ssh_signal(SIGPIPE, SIG_IGN);
+
+#ifdef __AFL_HAVE_MANUAL_CONTROL
+	/* AFL's deferred forkserver mode; appears after all the config
+	 * parsing and key loading, but before processing any connections. */
+	__AFL_INIT();
+#endif
 
 	/* Get a connection, either from inetd or a listening TCP socket */
 	if (inetd_flag) {
@@ -2458,5 +2465,11 @@ cleanup_exit(int i)
 	if (the_active_state != NULL && (!use_privsep || mm_is_monitor()))
 		audit_event(the_active_state, SSH_CONNECTION_ABANDON);
 #endif
+
+#if 0
 	_exit(i);
+#else
+	/* _exit() doesn't write 'gmon.out' (gprof data) */
+	exit(i);
+#endif
 }

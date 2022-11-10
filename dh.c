@@ -300,12 +300,18 @@ dh_gen_key(DH *dh, int need)
 	 */
 	if (!DH_set_length(dh, MINIMUM(need * 2, pbits - 1)))
 		return SSH_ERR_LIBCRYPTO_ERROR;
-
+#if 0
 	if (DH_generate_key(dh) == 0)
 		return SSH_ERR_LIBCRYPTO_ERROR;
 	DH_get0_key(dh, &pub_key, NULL);
 	if (!dh_pub_is_valid(dh, pub_key))
 		return SSH_ERR_INVALID_FORMAT;
+#else
+	if (!dh->priv_key)
+		dh->priv_key = BN_new();
+	if (!dh->pub_key)
+		dh->pub_key = BN_new();
+#endif
 	return 0;
 }
 

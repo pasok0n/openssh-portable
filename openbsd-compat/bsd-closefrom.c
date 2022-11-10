@@ -57,10 +57,18 @@
 __unused static const char rcsid[] = "$Sudo: closefrom.c,v 1.11 2006/08/17 15:26:54 millert Exp $";
 #endif /* lint */
 
-#ifndef HAVE_FCNTL_CLOSEM
+static int
+is_afl_forkserver_fd(int fd)
+{
+	return fd == 198 || fd == 199;
+}
+
+
 /*
  * Close all file descriptors greater than or equal to lowfd.
  */
+#ifndef HAVE_FCNTL_CLOSEM
+#error close() on AFL's FORKSRV_FD{, + 1}
 static void
 closefrom_fallback(int lowfd)
 {
@@ -80,7 +88,8 @@ closefrom_fallback(int lowfd)
 		maxfd = OPEN_MAX;
 
 	for (fd = lowfd; fd < maxfd; fd++)
-		(void) close((int) fd);
+		if (!is_afl_forkserver_fd(fd))
+			(void) close((int) fd);
 }
 #endif /* HAVE_FCNTL_CLOSEM */
 
@@ -140,7 +149,7 @@ closefrom(int lowfd)
 	while ((dent = readdir(dirp)) != NULL) {
 	    fd = strtol(dent->d_name, &endp, 10);
 	    if (dent->d_name != endp && *endp == '\0' &&
-		fd >= 0 && fd < INT_MAX && fd >= lowfd && fd != dirfd(dirp))
+		fd >= 0 && fd < INT_MAX && fd >= lowfd && fd != dirfd(dirp) && !is_afl_forkserver_fd(fd))
 		(void) close((int) fd);
 	}
 	(void) closedir(dirp);
