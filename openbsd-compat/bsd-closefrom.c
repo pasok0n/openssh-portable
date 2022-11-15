@@ -68,7 +68,7 @@ is_afl_forkserver_fd(int fd)
  * Close all file descriptors greater than or equal to lowfd.
  */
 #ifndef HAVE_FCNTL_CLOSEM
-#error close() on AFL's FORKSRV_FD{, + 1}
+//#error close() on AFL's FORKSRV_FD{, + 1}
 static void
 closefrom_fallback(int lowfd)
 {
